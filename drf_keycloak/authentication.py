@@ -1,4 +1,5 @@
 """ Keycloak User Authentication """
+from pprint import pprint
 from django.contrib.auth import get_user_model
 from rest_framework import authentication
 from rest_framework.exceptions import AuthenticationFailed
@@ -72,9 +73,12 @@ class KeycloakAuthBackend(authentication.BaseAuthentication):
         except KeyError as exc:
             raise InvalidToken("Token contained no recognizable user identification") from exc
 
+        user_scope = validated_token["azp"] if "azp" in validated_token else "storefront"
+
         user, created = self.user_model.objects.get_or_create(
-            **{keycloak_settings.USER_ID_FIELD: user_id}
+            **{keycloak_settings.USER_ID_FIELD: user_id, "scope": user_scope}
         )
+        
         if created:
             if keycloak_settings.VERIFY_TOKENS_WITH_KEYCLOAK:
                 token = self.raw_token.decode() if isinstance(self.raw_token, bytes) else self.raw_token
